@@ -80,9 +80,9 @@ def live_analysis(message):
         status = "🔥 JUDA QIZIQ!"
         advice = "Hozir omadli vaqt! Server ko'p Epic bermoqda. Pack oching!"
 
-    bot.send_message(message.chat.id, f"📡 **Live Holat:** {status}\n"
-                                     f"📈 Oxirgi 15 daqiqada tushgan Epiclar: {count} ta\n"
-  import os
+        bot.send_message(message.chat.id, f"✅ Tahlil yakunlandi.")
+
+import os
 from flask import Flask
 from threading import Thread
 
@@ -100,9 +100,6 @@ def keep_alive():
     t.start()
 
 if __name__ == "__main__":
-    keep_alive()  # Botni uyquga ketishdan asraydi
-    # Bu yerda init_db() funksiyasi kodingizda borligini tekshiring
+    keep_alive()
     print("Bot muvaffaqiyatli ishga tushdi...")
     bot.polling(none_stop=True)
-                                   f"💡 **Maslahat:** {advice}")
-
