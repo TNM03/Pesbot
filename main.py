@@ -4,98 +4,52 @@ import requests
 from bs4 import BeautifulSoup
 from flask import Flask
 from threading import Thread
+import os
 
-TOKEN = "8597572815:AAE0gOf8UCmRdoZtHqq..." # O'z tokeningiz
+# MUHIM: Tokeningizni quyidagi qo'shtirnoq ichiga aniq yozing
+TOKEN = "8597572815:AAE0gOf8UCmRdoZtHqq..." 
 bot = telebot.TeleBot(TOKEN)
 app = Flask('')
 
-# Tillar lug'ati
-STRINGS = {
-    'uz': {
-        'welcome': "Xush kelibsiz! Tilni tanlang:",
-        'search': "🔍 Futbolchini qidirish",
-        'help': "🆘 Yordam",
-        'ask_name': "Futbolchi ismini inglizcha yozing (masalan: Messi):",
-        'searching': "🔎 Tahlil qilinmoqda...",
-        'not_found': "❌ Futbolchi topilmadi.",
-        'result': "✅ Topildi: {name}\n📈 Max Reyting: {rating}\n🔗 Batafsil: {link}"
-    },
-    'ru': {
-        'welcome': "Добро пожаловать! Выберите язык:",
-        'search': "🔍 Поиск игрока",
-        'help': "🆘 Помощь",
-        'ask_name': "Введите имя игрока на английском (например: Messi):",
-        'searching': "🔎 Анализируем...",
-        'not_found': "❌ Игрок не найден.",
-        'result': "✅ Найден: {name}\n📈 Макс Рейтинг: {rating}\n🔗 Подробнее: {link}"
-    },
-    'en': {
-        'welcome': "Welcome! Choose your language:",
-        'search': "🔍 Search Player",
-        'help': "🆘 Help",
-        'ask_name': "Enter player name (e.g., Messi):",
-        'searching': "🔎 Analyzing...",
-        'not_found': "❌ Player not found.",
-        'result': "✅ Found: {name}\n📈 Max Rating: {rating}\n🔗 Details: {link}"
-    }
-}
+@app.route('/')
+def home():
+    return "Bot ishlamoqda!"
 
-user_lang = {} # Foydalanuvchi tilini saqlash uchun
+def get_player_list(player_name):
+    search_url = f"https://www.efootballdb.com/search?name={player_name.replace(' ', '+')}"
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    try:
+        response = requests.get(search_url, headers=headers, timeout=10)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        players = soup.find_all('a', class_='player-name', limit=5)
+        return [{"name": p.text.strip(), "link": "https://www.efootballdb.com" + p['href']} for p in players]
+    except:
+        return []
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("🇺🇿 O'zbekcha", callback_data='lang_uz'),
-               types.InlineKeyboardButton("🇷🇺 Русский", callback_data='lang_ru'),
-               types.InlineKeyboardButton("🇬🇧 English", callback_data='lang_en'))
-    bot.send_message(message.chat.id, "Choose language / Tilni tanlang / Выберите язык:", reply_markup=markup)
+    bot.reply_to(message, "Assalomu alaykum! Futbolchi ismini inglizcha yozing (masalan: Messi):")
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith('lang_'))
-def set_language(call):
-    lang = call.data.split('_')[1]
-    user_lang[call.message.chat.id] = lang
-    
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    markup.add(STRINGS[lang]['search'], STRINGS[lang]['help'])
-    
-    bot.answer_callback_query(call.id)
-    bot.send_message(call.message.chat.id, STRINGS[lang]['welcome'], reply_markup=markup)
-
-@bot.message_handler(func=lambda m: True)
-def handle_text(message):
-    chat_id = message.chat.id
-    lang = user_lang.get(chat_id, 'uz') # Default til - uz
-    
-    if message.text in [STRINGS['uz']['search'], STRINGS['ru']['search'], STRINGS['en']['search']]:
-        bot.send_message(chat_id, STRINGS[lang]['ask_name'])
-    elif message.text in [STRINGS['uz']['help'], STRINGS['ru']['help'], STRINGS['en']['help']]:
-        bot.send_message(chat_id, "Contact: @admin")
-    else:
-        # Qidiruv logikasi (eFootballDB tahlili)
-        search_player(message, lang)
-
-def search_player(message, lang):
+@bot.message_handler(func=lambda message: True)
+def handle_search(message):
     name = message.text
-    bot.send_message(message.chat.id, STRINGS[lang]['searching'])
-    
-    # Saytdan qidirish (avvalgi mantiq)
+    bot.send_message(message.chat.id, f"🔎 '{name}' tahlil qilinmoqda...")
+    players = get_player_list(name)
+    if players:
+        markup = types.InlineKeyboardMarkup()
+        for p in players:
+            markup.add(types.InlineKeyboardButton(text=f"🃏 {p['name']}", url=p['link']))
+        bot.send_message(message.chat.id, "Topilgan kartalar:", reply_markup=markup)
+    else:
+        bot.send_message(message.chat.id, "❌ Topilmadi.")
+
+def run():
+    app.run(host='0.0.0.0', port=8080)
+
+if __name__ == "__main__":
+    t = Thread(target=run)
+    t.start()
     try:
-        url = f"https://www.efootballdb.com/search?name={name.replace(' ', '+')}"
-        res = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
-        soup = BeautifulSoup(res.text, 'html.parser')
-        player = soup.find('a', class_='player-name')
-        
-        if player:
-            # Bu yerda sayt sarlavhasini tahlil qilib, natijani yuboramiz
-            bot.send_message(message.chat.id, STRINGS[lang]['result'].format(
-                name=player.text, rating="95-100", link="https://www.efootballdb.com" + player['href']
-            ))
-        else:
-            bot.send_message(message.chat.id, STRINGS[lang]['not_found'])
-    except:
-        bot.send_message(message.chat.id, "Error connect to server")
-
-# Flask server qismi (Render uchun)
-# ... (avvalgi koddagi Flask qismini shu yerga qo'shing)
-
-bot.polling(none_stop=True)
+        bot.polling(none_stop=True)
+    except Exception as e:
+        print(f"Xatolik yuz berdi: {e}")
