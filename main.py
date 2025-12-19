@@ -20,7 +20,17 @@ def init_db():
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "Assalomu alaykum! Pesbot v3 ishga tushdi. /tahlil buyrug'ini yuboring.")
+    # Tugmalarni yaratish
+    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+    btn1 = telebot.types.KeyboardButton("📊 Tahlil")
+    markup.add(btn1)
+    
+    bot.reply_to(message, "Assalomu alaykum! Pesbot v3 ishga tushdi. Quyidagi tugmani bosing:", reply_markup=markup)
+
+# Tugma bosilganda ishlaydigan qism
+@bot.message_handler(func=lambda message: message.text == "📊 Tahlil")
+def tahlil_button(message):
+    live_analysis(message)
 
 @bot.message_handler(commands=['tahlil'])
 def live_analysis(message):
