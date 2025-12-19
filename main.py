@@ -6,7 +6,7 @@ from flask import Flask
 from threading import Thread
 
 # Bot tokeningizni shu yerga yozing
-TOKEN = "7483920571:AAH_uR8jX-zJ5kL2m7N9pQy9T-G5_mYf7Y"
+TOKEN = "8597572815:AAEOgOf8UCmRdoZtHqqkDl-D9Zt0oRRj2LY"
 bot = telebot.TeleBot(TOKEN)
 
 # Ma'lumotlar bazasini sozlash
