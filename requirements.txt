@@ -1,7 +1,6 @@
 pyTelegramBotAPI
 flask
-pyTelegramBotAPI
-flask
 requests
 beautifulsoup4
+
 
