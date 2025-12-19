@@ -7,7 +7,7 @@ from threading import Thread
 import os
 
 # MUHIM: Tokeningizni quyidagi qo'shtirnoq ichiga aniq yozing
-TOKEN = "8597572815:AAE0gOf8UCmRdoZtHqq..." 
+TOKEN = "8597572815:AAEOgOf8UCmRdoZtHqqkDl-D9Zt0oRRj2LY"
 bot = telebot.TeleBot(TOKEN)
 app = Flask('')
 
