@@ -77,3 +77,26 @@ if __name__ == "__main__":
     keep_alive()
     print("Bot muvaffaqiyatli ishga tushdi...")
     bot.polling(none_stop=True)
+@bot.message_handler(func=lambda message: message.text.startswith("http"))
+def link_analyzer(message):
+    url = message.text
+    bot.reply_to(message, "Havola qabul qilindi. Tahlil qilinmoqda...")
+    
+    try:
+        response = requests.get(url, timeout=10)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        title = soup.title.string if soup.title else "Sarlavha topilmadi"
+        text_content = soup.get_text()
+        word_count = len(text_content.split())
+        
+        result = (
+            f"🔗 **Havola tahlili:**\n\n"
+            f"📌 **Sarlavha:** {title}\n"
+            f"📝 **So'zlar soni:** {word_count}\n"
+            f"✅ **Holat:** Sayt muvaffaqiyatli o'qildi."
+        )
+        bot.send_message(message.chat.id, result)
+        
+    except Exception as e:
+        bot.reply_to(message, f"Xatolik yuz berdi: {e}")
