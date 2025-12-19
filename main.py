@@ -82,7 +82,27 @@ def live_analysis(message):
 
     bot.send_message(message.chat.id, f"📡 **Live Holat:** {status}\n"
                                      f"📈 Oxirgi 15 daqiqada tushgan Epiclar: {count} ta\n"
-                                     f"💡 **Maslahat:** {advice}")
+  import os
+from flask import Flask
+from threading import Thread
 
-print("V3 Bot ishga tushdi...")
-bot.polling()
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is running!"
+
+def run():
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+
+if __name__ == "__main__":
+    keep_alive()  # Botni uyquga ketishdan asraydi
+    # Bu yerda init_db() funksiyasi kodingizda borligini tekshiring
+    print("Bot muvaffaqiyatli ishga tushdi...")
+    bot.polling(none_stop=True)
+                                   f"💡 **Maslahat:** {advice}")
+
