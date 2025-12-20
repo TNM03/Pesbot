@@ -7,7 +7,7 @@ from threading import Thread
 import time
 
 # 1. BOT SOZLAMALARI
-TOKEN = "8597572815:AAEOgOf8UCmRdoZtHqqkDl-D9Zt0oRRj2LY # O'z tokeningizni to'liq yozing
+TOKEN = "8597572815:AAEOgOf8UCmRdoZtHqqkDl-D9Zt0oRRj2LY" # O'z tokeningizni to'liq yozing
 bot = telebot.TeleBot(TOKEN)
 app = Flask('')
 
