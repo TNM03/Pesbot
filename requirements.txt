@@ -1,5 +1,7 @@
-aiogram
+pyTelegramBotAPI
 requests
 beautifulsoup4
+flask
+gunicorn
 
 
