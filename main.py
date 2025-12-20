@@ -1,10 +1,10 @@
+import asyncio
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message
-from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
-import asyncio
+from aiogram.fsm.context import FSMContext
 
-from config import BOT_TOKEN, DEFAULT_LANG
+from config import BOT_TOKEN
 from keyboards import main_menu
 from languages import TEXTS
 from states import MaxRatingState
@@ -19,15 +19,12 @@ USER_LANG = {}
 
 @dp.message(Command("start"))
 async def start(msg: Message):
-    USER_LANG[msg.from_user.id] = DEFAULT_LANG
-    await msg.answer(
-        TEXTS[DEFAULT_LANG]["menu"],
-        reply_markup=main_menu(DEFAULT_LANG)
-    )
+    USER_LANG[msg.from_user.id] = "uz"
+    await msg.answer(TEXTS["uz"]["menu"], reply_markup=main_menu("uz"))
 
-@dp.message(F.text.contains("Maksimal") | F.text.contains("Maximum") | F.text.contains("Максим"))
+@dp.message(F.text.contains("Maksimal"))
 async def max_rating_start(msg: Message, state: FSMContext):
-    await msg.answer("Futbolchi nomini kiriting:")
+    await msg.answer("Futbolchi nomini yozing:")
     await state.set_state(MaxRatingState.player_name)
 
 @dp.message(MaxRatingState.player_name)
@@ -36,28 +33,28 @@ async def get_cards(msg: Message, state: FSMContext):
     await state.update_data(player=msg.text)
 
     text = "Kartani tanlang:\n"
-    for i, c in enumerate(cards, 1):
-        text += f"{i}. {c}\n"
+    for i, card in enumerate(cards, 1):
+        text += f"{i}. {card}\n"
 
     await msg.answer(text)
     await state.set_state(MaxRatingState.card_choice)
 
 @dp.message(MaxRatingState.card_choice)
-async def give_recommendations(msg: Message, state: FSMContext):
+async def recommendations(msg: Message, state: FSMContext):
     recs = get_max_rating_recommendations(msg.text)
-    result = "📈 Maksimal reyting uchun:\n\n"
+    text = "📈 Maksimal reyting uchun tavsiyalar:\n\n"
 
     for r in recs:
-        result += f"👤 Murabbiy: {r['coach']}\n"
-        result += f"🏋️ Training: {r['training']}\n\n"
+        text += f"👤 Murabbiy: {r['coach']}\n"
+        text += f"🏋️ Training: {r['training']}\n\n"
 
-    await msg.answer(result)
+    await msg.answer(text)
     await state.clear()
 
-@dp.message(F.text.contains("yangilik") | F.text.contains("news") | F.text.contains("нов"))
+@dp.message(F.text.contains("yangilik"))
 async def news(msg: Message):
-    news_list = get_latest_news()
-    await msg.answer("\n\n".join(news_list))
+    news = get_latest_news()
+    await msg.answer("\n\n".join(news))
 
 async def main():
     await dp.start_polling(bot)
