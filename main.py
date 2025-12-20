@@ -6,7 +6,7 @@ import json
 import re
 
 # Bot tokeningizni kiriting
-BOT_TOKEN = "SIZNING_TOKEN"
+BOT_TOKEN = "8597572815:AAEOgOf8UCmRdoZtHqqkDl-D9Zt0oRRj2LY"
 bot = telebot.TeleBot(BOT_TOKEN)
 
 # Foydalanuvchi tillari
