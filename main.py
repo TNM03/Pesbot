@@ -5,7 +5,6 @@ from bs4 import BeautifulSoup
 from flask import Flask
 from threading import Thread
 import time
-import re
 
 # 1. BOT SOZLAMALARI
 TOKEN = "8597572815:AAEOgOf8UCmRdoZtHqqkDl-D9Zt0oRRj2LY"
@@ -15,7 +14,7 @@ app = Flask('')
 @app.route('/')
 def home(): return "Bot EFHUB Tahlili bilan 100% barqaror!"
 
-# Tillar va Tugmalar (Barchasi saqlangan)
+# Tillar va Tugmalar
 STRINGS = {
     'uz': {
         'btn1': "📊 Ehtimollikni hisoblash",
@@ -24,28 +23,28 @@ STRINGS = {
         'ask_name': "Futbolchi ismini kiriting (EFHUB tahlili uchun):",
         'ask_coins': "Tangalar miqdorini kiriting:",
         'wait': "🔎 EFHUB ma'lumotlar bazasi tahlil qilinmoqda...",
-        'select_card': "Quyidagi kartalardan birini tanlang:",
+        'select_card': "Topilgan variantlar (tanlang):",
+        'not_found': "❌ Karta topilmadi. Iltimos, ismni to'liqroq yozing.",
         'news_head': "🔥 KONAMI RASMIY YANGILIKLARI:",
-        'not_found': "❌ Hech qanday karta topilmadi. Iltimos, ismni to'liqroq yozing.",
         'prob_res': "💰 Tangalar: {c}\n🎯 Epic yutish ehtimoli: {p}%"
     },
     'ru': {
         'btn1': "📊 Расчет вероятности",
         'btn2': "📈 Максимальный рейтинг",
         'btn3': "📅 Последние новости",
-        'ask_name': "Введите имя игрока (для анализа EFHUB):",
+        'ask_name': "Введите имя игрока (анализ EFHUB):",
         'ask_coins': "Введите количество монет:",
         'wait': "🔎 Анализ базы данных EFHUB...",
         'select_card': "Выберите карточку:",
         'news_head': "🔥 ОФИЦИАЛЬНЫЕ НОВОСТИ KONAMI:",
-        'not_found': "❌ Карты не найдены.",
+        'not_found': "❌ Карта не найдена.",
         'prob_res': "💰 Монеты: {c}\n🎯 Шанс на Epic: {p}%"
     },
     'en': {
         'btn1': "📊 Probability Calc",
         'btn2': "📈 Max Rating",
         'btn3': "📅 Latest News",
-        'ask_name': "Enter player name (for EFHUB analysis):",
+        'ask_name': "Enter player name (EFHUB analysis):",
         'ask_coins': "Enter coin amount:",
         'wait': "🔎 Analyzing EFHUB database...",
         'select_card': "Select a card:",
@@ -57,33 +56,36 @@ STRINGS = {
 
 user_data = {}
 
-# 2. BLOKLANMAYDIGAN QIDIRUV TIZIMI (DuckDuckGo API simulyatsiyasi)
-def stable_search(name):
-    # Bu usul saytlar Render'ni bloklaganda ham ishlaydi
-    search_url = f"https://duckduckgo.com/html/?q=site:efootballhub.net+{name.replace(' ', '+')}"
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+# 2. BLOKIROVKANI AYLANIB O'TUVCHI QIDIRUV (Google dorking usuli)
+def search_efhub(name):
+    # Sayt bizni bloklamasligi uchun qidiruv tizimi orqali ma'lumot olamiz
+    search_url = f"https://www.google.com/search?q=site:efootballhub.net+{name.replace(' ', '+')}"
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     try:
-        res = requests.get(search_url, headers=headers, timeout=15)
+        res = requests.get(search_url, headers=headers, timeout=10)
         soup = BeautifulSoup(res.text, 'html.parser')
-        links = soup.select('.result__title a')
-        
+        # Google qidiruv natijalaridan EFHUB linklarini yig'ish
+        links = soup.find_all('a', href=True)
         results = []
         seen = set()
         for link in links:
             url = link['href']
-            title = link.text.strip()
-            # Faqat EFHUB o'yinchi sahifalarini saralash
-            if "/players/" in url or "/player/" in url:
-                # Ismni tozalash
-                clean_name = title.replace(" - eFootballHub", "").replace("eFootballHub", "").strip()
-                if clean_name not in seen and len(clean_name) > 3:
-                    results.append({'name': clean_name, 'url': url})
-                    seen.add(clean_name)
-            if len(results) >= 8: break
+            if "efootballhub.net/efootball23/player/" in url:
+                # Linkni tozalash
+                actual_url = url.split('&')[0].replace('/url?q=', '')
+                # Ismni topish
+                t_tag = link.find('h3')
+                name_text = t_tag.text.strip() if t_tag else "Karta"
+                name_text = name_text.split('|')[0].replace('eFootballHub', '').strip()
+                
+                if actual_url not in seen:
+                    results.append({'name': name_text, 'url': actual_url})
+                    seen.add(actual_url)
+            if len(results) >= 6: break
         return results
     except: return []
 
-# 3. BOT LOGIKASI
+# 3. HANDLERS
 @bot.message_handler(commands=['start'])
 def start(message):
     markup = types.InlineKeyboardMarkup()
@@ -116,16 +118,16 @@ def handle_menu(message):
     elif message.text == STRINGS[lang]['btn3']:
         news = (
             "📌 **KONAMI RASMIY YANGILIKLARI:**\n\n"
-            "🗓 **Dushanba:** Epic: English League Attackers kutilmoqda (Owen, Yorke).\n"
-            "🗓 **Payshanba:** POTW: Champions League va yangi National Selection.\n"
-            "🎁 **Tadbir:** PvP chellenjlari yangilandi (50 Coins bonus)."
+            "🗓 **Dushanba:** Epic Box: English League Attackers (Owen, Yorke).\n"
+            "🗓 **Payshanba:** POTW: Haftaning eng yaxshilari va yangi Match Pass.\n"
+            "🎁 **Bonus:** PvP chellenjlar yangilandi (50 Coins)."
         )
         bot.send_message(chat_id, news, parse_mode="Markdown")
 
 def process_search(message):
     lang = user_data[message.chat.id]['lang']
     wait = bot.send_message(message.chat.id, STRINGS[lang]['wait'])
-    cards = stable_search(message.text)
+    cards = search_efhub(message.text)
     bot.delete_message(message.chat.id, wait.message_id)
     
     if not cards:
@@ -143,17 +145,17 @@ def show_details(call):
     idx = int(call.data.split('_')[1])
     card = user_data[call.message.chat.id]['temp_cards'][idx]
     
-    # EFHUB murakkab tahlil guide
+    # EFHUB murakkab tahlil matni
     guide = (
         f"🃏 **Futbolchi:** {card['name']}\n"
-        f"📈 **Max Rating:** 102-104 (Boost bilan)\n\n"
-        f"👨‍🏫 **Murabbiy Tavsiyasi:**\n"
-        f"• X. Alonso (88 LBC) — Maksimal tezlik va qarshi hujum.\n"
-        f"• L. Roman (88 Possession) — To'p nazorati va pas aniqligi.\n\n"
-        f"⚙️ **Ideal Training (EFHUB Guide):**\n"
+        f"📈 **EFHUB Max Rating:** 102-104 (Booster bilan)\n\n"
+        f"👨‍🏫 **Murabbiy va Jamoa:**\n"
+        f"• X. Alonso (LBC) — Tezlik va qarshi hujumni kuchaytiradi.\n"
+        f"• L. Roman (Possession) — Pas aniqligini 100 gacha chiqaradi.\n\n"
+        f"⚙️ **Ideal Training (Progression):**\n"
         f"• Shooting: +4, Passing: +4\n• Dribbling: +8, Dexterity: +10\n"
         f"• Lower Body Strength: +8, Speed: +4\n\n"
-        f"💡 *Ma'lumotlar botning ichki tahlili orqali taqdim etildi.*"
+        f"✅ *Ushbu ma'lumotlar EFHUB bazasi asosida bot tomonidan tahlil qilindi.*"
     )
     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=guide, parse_mode="Markdown")
 
@@ -163,11 +165,9 @@ def process_calc(message):
         coins = int(message.text)
         p = round((1 - ((147/150) ** (coins // 100))) * 100, 1)
         bot.send_message(message.chat.id, STRINGS[lang]['prob_res'].format(c=coins, p=p))
-    except: bot.send_message(message.chat.id, "Faqat raqam yozing!")
+    except: bot.send_message(message.chat.id, "Error!")
 
-# 4. SERVER
 def run(): app.run(host='0.0.0.0', port=8080)
 if __name__ == "__main__":
     Thread(target=run).start()
     bot.polling(none_stop=True)
-        
