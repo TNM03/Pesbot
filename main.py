@@ -7,58 +7,63 @@ from threading import Thread
 import time
 
 # 1. BOT SOZLAMALARI
-TOKEN = "8597572815:AAEOgOf8UCmRdoZtHqqkDl-D9Zt0oRRj2LY" # O'z tokeningizni to'liq yozing
+TOKEN = "8597572815:AAEOgOf8UCmRdoZtHqqkDl-D9Zt0oRRj2LY" # O'z tokeningizni to'liq qo'ying
 bot = telebot.TeleBot(TOKEN)
 app = Flask('')
 
 @app.route('/')
 def home():
-    return "Bot 3 tilda faol!"
+    return "Bot faol!"
 
 # Tillar lug'ati
 STRINGS = {
     'uz': {
-        'welcome': "Xush kelibsiz! Tilni tanlang:",
+        'welcome': "Tilni tanlang:",
         'ask_name': "Futbolchi ismini inglizcha yozing (masalan: Messi):",
         'searching': "🔎 '{name}' tahlil qilinmoqda...",
         'not_found': "❌ Afsuski, hech qanday karta topilmadi.",
         'found': "✅ '{name}' uchun topilgan kartalar:",
-        'guide': "Karta haqida ma'lumot va Training Guide uchun tanlang:"
+        'guide': "Batafsil ma'lumot uchun tanlang:"
     },
     'ru': {
-        'welcome': "Добро пожаловать! Выберите язык:",
+        'welcome': "Выберите язык:",
         'ask_name': "Введите имя игрока на английском (например: Messi):",
         'searching': "🔎 Анализируем '{name}'...",
         'not_found': "❌ Карты не найдены.",
         'found': "✅ Найденные карты для '{name}':",
-        'guide': "Выберите карту для просмотра Training Guide:"
+        'guide': "Выберите для подробностей:"
     },
     'en': {
-        'welcome': "Welcome! Choose your language:",
+        'welcome': "Choose language:",
         'ask_name': "Enter player name in English (e.g., Messi):",
         'searching': "🔎 Analyzing '{name}'...",
         'not_found': "❌ No cards found.",
         'found': "✅ Found cards for '{name}':",
-        'guide': "Select a card to view Training Guide:"
+        'guide': "Select for details:"
     }
 }
 
-user_lang = {} # Foydalanuvchi tilini saqlash
+user_lang = {}
 
-# 2. QIDIRUV FUNKSIYASI
+# 2. QIDIRUV FUNKSIYASI (PES Master bazasi asosida)
 def get_player_list(player_name):
-    search_url = f"https://www.efootballdb.com/search?name={player_name.replace(' ', '+')}"
+    # PES Master qidiruv tizimi barqarorroq
+    search_url = f"https://www.pesmaster.com/efootball-2022/search/?q={player_name.replace(' ', '+')}"
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    
     try:
         response = requests.get(search_url, headers=headers, timeout=15)
         soup = BeautifulSoup(response.text, 'html.parser')
-        players = soup.select('a[href*="/players/"]')
+        
+        # Futbolchi linklarini topish
+        players = soup.select('a[href*="/efootball-2022/player/"]')
+        
         results = []
         seen = set()
         for p in players:
             name = p.text.strip()
-            link = "https://www.efootballdb.com" + p['href']
-            if name and len(name) > 2 and link not in seen:
+            link = "https://www.pesmaster.com" + p['href']
+            if name and len(name) > 3 and link not in seen:
                 results.append({"name": name, "link": link})
                 seen.add(link)
             if len(results) >= 6: break
@@ -110,3 +115,4 @@ if __name__ == "__main__":
             bot.polling(none_stop=True, interval=0, timeout=20)
         except:
             time.sleep(5)
+
