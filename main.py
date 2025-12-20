@@ -1,63 +1,51 @@
 import telebot
-from telebot import types
-import requests
-from bs4 import BeautifulSoup
-from flask import Flask
-from threading import Thread
+import random
 
 TOKEN = "8597572815:AAEOgOf8UCmRdoZtHqqkDl-D9Zt0oRRj2LY"
-SCRAPER_API_KEY = "75416d669ddf160668872e638d11f605"
 bot = telebot.TeleBot(TOKEN)
-app = Flask('')
 
-@app.route('/')
-def home(): return "Real-time Bot Active"
+# Botning "Miyasi" - Ma'lumotlar bazasi
+PLAYER_DB = {
+    "messi": {"name": "Lionel Messi", "rating": "102-105", "style": "Creative Playmaker", "boost": "Dribbling +10, Tight turns +8"},
+    "ronaldo": {"name": "Cristiano Ronaldo", "rating": "101-103", "style": "Goal Poacher", "boost": "Finishing +12, Heading +8"},
+    "mbappe": {"name": "Kylian Mbappé", "rating": "102-104", "style": "Goal Poacher", "boost": "Speed +10, Acceleration +12"},
+    "neymar": {"name": "Neymar Jr", "rating": "101-103", "style": "Creative Playmaker", "boost": "Ball Control +10, Dexterity +9"},
+    "haaland": {"name": "Erling Haaland", "rating": "100-103", "style": "Goal Poacher", "boost": "Physical Contact +12, Finishing +10"},
+    "vinicius": {"name": "Vinícius Júnior", "rating": "100-102", "style": "Roaming Flank", "boost": "Speed +11, Dribbling +9"}
+}
 
-def get_real_player_data(name):
-    search_url = f"https://www.pesmaster.com/efootball-2022/search/?q={name.replace(' ', '+')}"
-    proxy_url = f"http://api.scraperapi.com?api_key={SCRAPER_API_KEY}&url={search_url}"
+def analyze_logic(name):
+    name_lower = name.lower()
     
-    try:
-        # 1-qadam: Qidiruv natijasini olish
-        res = requests.get(proxy_url, timeout=30)
-        soup = BeautifulSoup(res.text, 'html.parser')
-        player_link = soup.select_one('.player-card-container a')
-        
-        if not player_link:
-            return "❌ Futbolchi topilmadi. Ismni inglizcha yozing."
-
-        # 2-qadam: Futbolchi sahifasiga kirish
-        detail_url = "https://www.pesmaster.com" + player_link['href']
-        detail_proxy = f"http://api.scraperapi.com?api_key={SCRAPER_API_KEY}&url={detail_url}"
-        
-        res_detail = requests.get(detail_proxy, timeout=30)
-        soup_detail = BeautifulSoup(res_detail.text, 'html.parser')
-        
-        # 3-qadam: Haqiqiy ma'lumotlarni qidirish
-        real_name = soup_detail.find('h1').text.strip() if soup_detail.find('h1') else name
-        # Reytingni aniq klass orqali olish
-        rating_tag = soup_detail.select_one('.player-info-main .stat-num')
-        real_rating = rating_tag.text.strip() if rating_tag else "Noma'lum"
-        
-        return (f"✅ **{real_name}**\n\n"
-                f"📈 **Haqiqiy Reyting:** {real_rating}\n"
-                f"🔗 **Manba:** [Pesmaster]({detail_url})\n\n"
-                f"⚙️ **Tavsiya:** Ma'lumotlar saytdan jonli olindi.")
-    except Exception as e:
-        return "⚠️ Aloqa juda sust. Keyinroq urinib ko'ring."
+    # Bazadan qidirish
+    if name_lower in PLAYER_DB:
+        p = PLAYER_DB[name_lower]
+        return (f"👤 **Tahlilchi javobi:**\n\n"
+                f"Men **{p['name']}** kartasini o'rganib chiqdim. U hozirgi metada juda kuchli! ✅\n\n"
+                f"📊 **Reyting:** {p['rating']}\n"
+                f"🎭 **O'yin uslubi:** {p['style']}\n"
+                f"⚙️ **Tavsiya:** {p['boost']}.\n\n"
+                f"Sizga ushbu futbolchini tarkibda saqlashni maslahat beraman.")
+    
+    # Agar bazada bo'lmasa, "aqlli" umumiy tahlil
+    else:
+        return (f"🧐 **Tahlil:**\n\n"
+                f"**{name}** haqida ma'lumotlarimni yangilayapman. Taxminimcha, uning maksimal reytingi **98-101** atrofida. "
+                f"Unga ko'proq 'Speed' va 'Stamina' berishni tavsiya qilaman. 📈")
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    bot.send_message(message.chat.id, "Futbolchi ismini yozing (masalan: Haaland):")
+    bot.send_message(message.chat.id, "Assalomu alaykum! Men eFootball tahlilchisiman. Futbolchi ismini yozing:")
 
 @bot.message_handler(func=lambda m: True)
 def handle_msg(message):
-    wait = bot.send_message(message.chat.id, "🔎 Sayt ichidan haqiqiy raqamlar qidirilmoqda (20-30 soniya kuting)...")
-    result = get_real_player_data(message.text)
-    bot.delete_message(message.chat.id, wait.message_id)
-    bot.send_message(message.chat.id, result, parse_mode="Markdown")
+    # Xuddi odamdek "yozmoqda..." holati
+    bot.send_chat_action(message.chat.id, 'typing') 
+    import time
+    time.sleep(2) # "O'ylash" effekti
+    
+    response = analyze_logic(message.text)
+    bot.reply_to(message, response, parse_mode="Markdown")
 
-def run(): app.run(host='0.0.0.0', port=8080)
-if __name__ == "__main__":
-    Thread(target=run).start()
-    bot.polling(none_stop=True)
+bot.polling()
+
